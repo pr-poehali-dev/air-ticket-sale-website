@@ -51,7 +51,7 @@ function Logo({ light = false }: { light?: boolean }) {
   return (
     <div className="flex items-center gap-2">
       <Icon name="Plane" size={26} className={light ? 'text-white' : 'text-primary'} />
-      <span className={`text-xl font-extrabold tracking-tight ${light ? 'text-white' : 'text-foreground'}`}>FlyWay</span>
+      <span className={`text-xl font-extrabold tracking-tight ${light ? 'text-white' : 'text-foreground'}`}>FlyWay2</span>
     </div>
   );
 }
