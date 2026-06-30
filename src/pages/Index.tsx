@@ -1,36 +1,46 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import Icon from '@/components/ui/icon';
 
 const HERO_IMG = 'https://cdn.poehali.dev/projects/e11bc11c-60be-4d54-be6b-296e1a780d70/files/f5dcaa96-cd7a-4a40-bc87-28c74cfa181a.jpg';
 
 const navLinks = ['Авиабилеты', 'Отели', 'Мои заказы'];
-
 const tripTypes = ['Туда-обратно', 'В одну сторону', 'Сложный маршрут'];
 
-const flights = [
+const ALL_FLIGHTS = [
   {
-    airline: 'S7 Airlines', code: 'S7', tag: 'Лучший выбор',
+    id: 1, airline: 'S7 Airlines', code: 'S7', tag: 'Лучший выбор',
     dep: '09:35', arr: '15:20', from: 'LED', to: 'DME',
     fromCity: 'Санкт-Петербург', toCity: 'Москва',
     fromAir: 'Пулково', toAir: 'Домодедово',
-    dur: '1 ч 45 мин', stops: 'Прямой', price: '8 450',
-    seats: null,
+    dur: '1 ч 45 мин', stops: 'Прямой', price: '8 450', direct: true, seats: null,
   },
   {
-    airline: 'Аэрофлот', code: 'SU', tag: 'Популярный',
+    id: 2, airline: 'Аэрофлот', code: 'SU', tag: 'Популярный',
     dep: '11:10', arr: '17:30', from: 'LED', to: 'DME',
     fromCity: 'Санкт-Петербург', toCity: 'Москва',
     fromAir: 'Пулково', toAir: 'Домодедово',
-    dur: '2 ч 20 мин', stops: '1 пересадка', price: '6 990',
-    seats: 'Осталось 3 места',
+    dur: '2 ч 20 мин', stops: '1 пересадка', price: '6 990', direct: false, seats: 'Осталось 3 места',
   },
   {
-    airline: 'Победа', code: 'DP', tag: null,
+    id: 3, airline: 'Победа', code: 'DP', tag: null,
     dep: '07:00', arr: '08:50', from: 'LED', to: 'DME',
     fromCity: 'Санкт-Петербург', toCity: 'Москва',
     fromAir: 'Пулково', toAir: 'Домодедово',
-    dur: '1 ч 50 мин', stops: 'Прямой', price: '5 200',
-    seats: null,
+    dur: '1 ч 50 мин', stops: 'Прямой', price: '5 200', direct: true, seats: null,
+  },
+  {
+    id: 4, airline: 'Уральские авиалинии', code: 'U6', tag: null,
+    dep: '14:55', arr: '21:10', from: 'SVO', to: 'AER',
+    fromCity: 'Москва', toCity: 'Сочи',
+    fromAir: 'Шереметьево', toAir: 'Адлер',
+    dur: '2 ч 15 мин', stops: 'Прямой', price: '7 100', direct: true, seats: null,
+  },
+  {
+    id: 5, airline: 'S7 Airlines', code: 'S7', tag: null,
+    dep: '06:30', arr: '10:45', from: 'SVO', to: 'AER',
+    fromCity: 'Москва', toCity: 'Сочи',
+    fromAir: 'Шереметьево', toAir: 'Адлер',
+    dur: '2 ч 15 мин', stops: 'Прямой', price: '9 200', direct: true, seats: 'Осталось 2 места',
   },
 ];
 
@@ -47,23 +57,134 @@ const features = [
   { icon: 'Timer', title: 'Быстро и удобно', text: 'Покупка в пару кликов' },
 ];
 
+type Flight = typeof ALL_FLIGHTS[0];
+
 function Logo({ light = false }: { light?: boolean }) {
   return (
     <div className="flex items-center gap-2">
       <Icon name="Plane" size={26} className={light ? 'text-white' : 'text-primary'} />
-      <span className={`text-xl font-extrabold tracking-tight ${light ? 'text-white' : 'text-foreground'}`}>FlyWay2</span>
+      <span className={`text-xl font-extrabold tracking-tight ${light ? 'text-white' : 'text-foreground'}`}>FlyWay</span>
     </div>
   );
 }
 
-function Field({ label, value, placeholder, icon }: { label: string; value?: string; placeholder?: string; icon?: string }) {
+function Field({ label, value, placeholder, icon, onChange }: { label: string; value?: string; placeholder?: string; icon?: string; onChange?: (v: string) => void }) {
   return (
-    <div className="bg-white border border-border rounded-xl px-4 py-2.5 hover:border-primary/50 transition-colors cursor-pointer">
+    <div className="bg-white border border-border rounded-xl px-4 py-2.5 hover:border-primary/50 transition-colors">
       <div className="text-xs text-muted-foreground mb-0.5">{label}</div>
       <div className="flex items-center justify-between gap-2">
-        <span className={`text-sm font-semibold ${value ? 'text-foreground' : 'text-muted-foreground/60'}`}>{value || placeholder}</span>
+        {onChange ? (
+          <input
+            className="text-sm font-semibold bg-transparent outline-none w-full placeholder:text-muted-foreground/60 text-foreground"
+            value={value || ''}
+            placeholder={placeholder}
+            onChange={e => onChange(e.target.value)}
+          />
+        ) : (
+          <span className={`text-sm font-semibold ${value ? 'text-foreground' : 'text-muted-foreground/60'}`}>{value || placeholder}</span>
+        )}
         {icon && <Icon name={icon} size={16} className="text-muted-foreground shrink-0" />}
       </div>
+    </div>
+  );
+}
+
+function BookingModal({ flight, onClose }: { flight: Flight; onClose: () => void }) {
+  const [step, setStep] = useState(1);
+  const [form, setForm] = useState({ name: '', surname: '', passport: '', email: '', phone: '' });
+  const [submitted, setSubmitted] = useState(false);
+
+  const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement>) => setForm(f => ({ ...f, [k]: e.target.value }));
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitted(true);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white w-full sm:max-w-lg rounded-t-3xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-border sticky top-0 bg-white z-10 rounded-t-3xl">
+          <div>
+            <div className="font-bold text-lg">Бронирование билета</div>
+            {!submitted && <div className="text-xs text-muted-foreground mt-0.5">Шаг {step} из 2</div>}
+          </div>
+          <button onClick={onClose} className="grid place-items-center w-9 h-9 rounded-full hover:bg-secondary transition-colors"><Icon name="X" size={20} /></button>
+        </div>
+
+        {submitted ? (
+          <div className="flex flex-col items-center justify-center py-14 px-8 text-center">
+            <span className="grid place-items-center w-20 h-20 rounded-full bg-secondary mb-5">
+              <Icon name="CheckCircle" size={42} className="text-primary" />
+            </span>
+            <div className="text-2xl font-bold mb-2">Бронирование оформлено!</div>
+            <p className="text-muted-foreground text-sm mb-1">Подтверждение отправлено на <span className="font-semibold text-foreground">{form.email}</span></p>
+            <p className="text-muted-foreground text-sm mb-8">Рейс {flight.code} · {flight.from} → {flight.to} · {flight.dep}</p>
+            <button onClick={onClose} className="bg-primary text-primary-foreground font-semibold px-8 py-3 rounded-xl hover:bg-[hsl(var(--flyway-dark))] transition-colors">Отлично!</button>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="p-6 flex flex-col gap-4">
+            {/* Flight summary */}
+            <div className="flex items-center gap-4 bg-secondary/40 rounded-xl p-4 mb-2">
+              <span className="grid place-items-center w-10 h-10 rounded-full bg-secondary text-sm font-bold text-[hsl(var(--flyway-dark))]">{flight.code}</span>
+              <div className="flex-1">
+                <div className="font-semibold text-sm">{flight.airline}</div>
+                <div className="text-xs text-muted-foreground">{flight.fromCity} → {flight.toCity} · {flight.dep} – {flight.arr}</div>
+              </div>
+              <div className="text-right">
+                <div className="font-extrabold text-lg">от {flight.price} ₽</div>
+              </div>
+            </div>
+
+            {step === 1 && (
+              <>
+                <div className="text-sm font-semibold mb-1">Данные пассажира</div>
+                <div className="grid grid-cols-2 gap-3">
+                  <InputField label="Имя" value={form.name} onChange={set('name')} required placeholder="Иван" />
+                  <InputField label="Фамилия" value={form.surname} onChange={set('surname')} required placeholder="Иванов" />
+                </div>
+                <InputField label="Серия и номер паспорта" value={form.passport} onChange={set('passport')} required placeholder="4500 123456" />
+                <button type="button" onClick={() => setStep(2)} disabled={!form.name || !form.surname || !form.passport}
+                  className="mt-2 w-full bg-primary text-primary-foreground font-semibold py-3.5 rounded-xl hover:bg-[hsl(var(--flyway-dark))] transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                  Далее <Icon name="ChevronRight" size={18} className="inline" />
+                </button>
+              </>
+            )}
+
+            {step === 2 && (
+              <>
+                <div className="text-sm font-semibold mb-1">Контакты для уведомлений</div>
+                <InputField label="Email" type="email" value={form.email} onChange={set('email')} required placeholder="ivan@mail.ru" />
+                <InputField label="Телефон" type="tel" value={form.phone} onChange={set('phone')} required placeholder="+7 999 123-45-67" />
+                <div className="flex gap-3 mt-2">
+                  <button type="button" onClick={() => setStep(1)} className="flex-1 border border-border font-semibold py-3.5 rounded-xl hover:bg-secondary transition-colors">Назад</button>
+                  <button type="submit" disabled={!form.email || !form.phone}
+                    className="flex-2 flex-[2] bg-primary text-primary-foreground font-semibold py-3.5 rounded-xl hover:bg-[hsl(var(--flyway-dark))] transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                    Оплатить {flight.price} ₽
+                  </button>
+                </div>
+              </>
+            )}
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function InputField({ label, value, onChange, required, placeholder, type = 'text' }: { label: string; value: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; required?: boolean; placeholder?: string; type?: string }) {
+  return (
+    <div>
+      <label className="text-xs text-muted-foreground block mb-1">{label}</label>
+      <input
+        type={type}
+        value={value}
+        onChange={onChange}
+        required={required}
+        placeholder={placeholder}
+        className="w-full border border-border rounded-xl px-4 py-2.5 text-sm font-medium outline-none focus:border-primary transition-colors placeholder:text-muted-foreground/50"
+      />
     </div>
   );
 }
@@ -71,6 +192,34 @@ function Field({ label, value, placeholder, icon }: { label: string; value?: str
 export default function Index() {
   const [trip, setTrip] = useState(0);
   const [directOnly, setDirectOnly] = useState(false);
+  const [fromCity, setFromCity] = useState('Санкт-Петербург');
+  const [toCity, setToCity] = useState('');
+  const [searched, setSearched] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [flights, setFlights] = useState(ALL_FLIGHTS.slice(0, 3));
+  const [favorites, setFavorites] = useState<number[]>([]);
+  const [bookingFlight, setBookingFlight] = useState<Flight | null>(null);
+  const resultsRef = useRef<HTMLDivElement>(null);
+
+  const handleSearch = () => {
+    if (!fromCity) return;
+    setLoading(true);
+    setTimeout(() => {
+      const query = (fromCity + toCity).toLowerCase();
+      let result = query.includes('сочи') || query.includes('aer') || query.includes('краснодар')
+        ? ALL_FLIGHTS.slice(3)
+        : ALL_FLIGHTS.slice(0, 3);
+      if (directOnly) result = result.filter(f => f.direct);
+      setFlights(result);
+      setLoading(false);
+      setSearched(true);
+      setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+    }, 900);
+  };
+
+  const toggleFav = (id: number) => {
+    setFavorites(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
 
   return (
     <div className="min-h-screen bg-background font-sans text-foreground">
@@ -84,7 +233,11 @@ export default function Index() {
             ))}
           </nav>
           <div className="flex items-center gap-3">
-            <button className="hidden sm:grid place-items-center w-10 h-10 rounded-full hover:bg-secondary transition-colors"><Icon name="Heart" size={20} className="text-muted-foreground" /></button>
+            {favorites.length > 0 && (
+              <div className="hidden sm:flex items-center gap-1.5 bg-secondary px-3 py-1.5 rounded-full text-xs font-semibold text-[hsl(var(--flyway-dark))]">
+                <Icon name="Heart" size={14} className="fill-primary text-primary" /> {favorites.length}
+              </div>
+            )}
             <button className="hidden sm:grid place-items-center w-10 h-10 rounded-full hover:bg-secondary transition-colors"><Icon name="Bell" size={20} className="text-muted-foreground" /></button>
             <button className="grid place-items-center w-10 h-10 rounded-full bg-secondary"><Icon name="User" size={20} className="text-[hsl(var(--flyway-dark))]" /></button>
           </div>
@@ -112,9 +265,11 @@ export default function Index() {
                 </div>
 
                 <div className="relative grid sm:grid-cols-2 gap-3 mb-3">
-                  <Field label="Откуда" value="Санкт-Петербург" />
-                  <Field label="Куда" placeholder="Куда летим?" />
-                  <button className="hidden sm:grid absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 place-items-center w-9 h-9 rounded-full bg-secondary border-4 border-white shadow z-10 hover:rotate-180 transition-transform duration-300">
+                  <Field label="Откуда" value={fromCity} onChange={setFromCity} />
+                  <Field label="Куда" value={toCity} onChange={setToCity} placeholder="Куда летим?" />
+                  <button
+                    onClick={() => { const tmp = fromCity; setFromCity(toCity); setToCity(tmp); }}
+                    className="hidden sm:grid absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 place-items-center w-9 h-9 rounded-full bg-secondary border-4 border-white shadow z-10 hover:rotate-180 transition-transform duration-300">
                     <Icon name="ArrowLeftRight" size={16} className="text-[hsl(var(--flyway-dark))]" />
                   </button>
                 </div>
@@ -132,8 +287,11 @@ export default function Index() {
                     </span>
                     Прямые рейсы
                   </button>
-                  <button className="flex items-center justify-center gap-2 bg-primary text-primary-foreground font-semibold text-sm px-8 py-3.5 rounded-xl hover:bg-[hsl(var(--flyway-dark))] transition-colors shadow-lg shadow-primary/20">
-                    Найти билеты <Icon name="ChevronRight" size={18} />
+                  <button
+                    onClick={handleSearch}
+                    disabled={loading}
+                    className="flex items-center justify-center gap-2 bg-primary text-primary-foreground font-semibold text-sm px-8 py-3.5 rounded-xl hover:bg-[hsl(var(--flyway-dark))] transition-colors shadow-lg shadow-primary/20 disabled:opacity-70">
+                    {loading ? <><Icon name="Loader" size={18} className="animate-spin" /> Ищем...</> : <>Найти билеты <Icon name="ChevronRight" size={18} /></>}
                   </button>
                 </div>
               </div>
@@ -156,11 +314,17 @@ export default function Index() {
       </section>
 
       {/* Search results */}
-      <section className="container py-12" id="search">
+      <section className="container py-12" id="search" ref={resultsRef}>
         <div className="flex items-center justify-between flex-wrap gap-3 mb-6">
           <div>
-            <h2 className="text-3xl font-bold">Найденные билеты</h2>
-            <p className="text-muted-foreground mt-1 text-sm">Санкт-Петербург → Москва · 15 июня</p>
+            <h2 className="text-3xl font-bold">
+              {searched ? 'Найденные билеты' : 'Популярные рейсы'}
+            </h2>
+            <p className="text-muted-foreground mt-1 text-sm">
+              {searched
+                ? `${fromCity || 'Откуда'} → ${toCity || 'Куда угодно'} · ${flights.length} рейсов`
+                : 'Санкт-Петербург → Москва · 15 июня'}
+            </p>
           </div>
           <div className="flex items-center gap-2 bg-white border border-border rounded-xl px-4 py-2.5 text-sm font-medium cursor-pointer">
             <Icon name="ArrowDownNarrowWide" size={16} className="text-muted-foreground" />
@@ -169,62 +333,86 @@ export default function Index() {
           </div>
         </div>
 
-        <div className="space-y-4">
-          {flights.map((f, idx) => (
-            <div key={idx} className="group bg-white rounded-2xl border border-border p-5 md:p-6 flex flex-col lg:flex-row lg:items-center gap-6 hover:border-primary/40 hover:shadow-lg transition-all">
-              <div className="flex-1">
-                <div className="flex items-center gap-3 mb-4">
-                  {f.tag && (
-                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${f.tag === 'Лучший выбор' ? 'bg-primary text-primary-foreground' : 'bg-secondary text-[hsl(var(--flyway-dark))]'}`}>{f.tag}</span>
-                  )}
-                  <span className="grid place-items-center w-8 h-8 rounded-full bg-secondary text-xs font-bold text-[hsl(var(--flyway-dark))]">{f.code}</span>
-                  <span className="text-sm font-medium text-muted-foreground">{f.airline}</span>
-                </div>
-                <div className="flex items-center gap-4 md:gap-8">
-                  <div>
-                    <div className="text-2xl font-bold">{f.dep}</div>
-                    <div className="text-xs text-muted-foreground mt-0.5">{f.from}</div>
-                    <div className="text-xs text-muted-foreground">{f.fromCity}</div>
-                    <div className="text-xs text-muted-foreground">{f.fromAir}</div>
-                  </div>
-                  <div className="flex-1 flex flex-col items-center pt-1">
-                    <span className="text-xs text-muted-foreground mb-1">{f.stops}</span>
-                    <div className="w-full flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-                      <span className="flex-1 h-px bg-border relative"><Icon name="Plane" size={14} className="text-primary absolute left-1/2 -translate-x-1/2 -top-2 bg-white" /></span>
-                      <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-20 gap-4">
+            <Icon name="Loader" size={36} className="text-primary animate-spin" />
+            <p className="text-muted-foreground text-sm">Ищем лучшие рейсы для вас...</p>
+          </div>
+        ) : flights.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 gap-4">
+            <Icon name="SearchX" size={40} className="text-muted-foreground" />
+            <p className="font-semibold">Рейсы не найдены</p>
+            <p className="text-muted-foreground text-sm text-center">Попробуйте изменить параметры поиска или снять фильтр прямых рейсов</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {flights.map((f) => {
+              const isFav = favorites.includes(f.id);
+              return (
+                <div key={f.id} className="group bg-white rounded-2xl border border-border p-5 md:p-6 flex flex-col lg:flex-row lg:items-center gap-6 hover:border-primary/40 hover:shadow-lg transition-all">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-4">
+                      {f.tag && (
+                        <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${f.tag === 'Лучший выбор' ? 'bg-primary text-primary-foreground' : 'bg-secondary text-[hsl(var(--flyway-dark))]'}`}>{f.tag}</span>
+                      )}
+                      <span className="grid place-items-center w-8 h-8 rounded-full bg-secondary text-xs font-bold text-[hsl(var(--flyway-dark))]">{f.code}</span>
+                      <span className="text-sm font-medium text-muted-foreground">{f.airline}</span>
                     </div>
-                    <span className="text-xs text-muted-foreground mt-1">{f.dur}</span>
+                    <div className="flex items-center gap-4 md:gap-8">
+                      <div>
+                        <div className="text-2xl font-bold">{f.dep}</div>
+                        <div className="text-xs text-muted-foreground mt-0.5">{f.from}</div>
+                        <div className="text-xs text-muted-foreground">{f.fromCity}</div>
+                        <div className="text-xs text-muted-foreground">{f.fromAir}</div>
+                      </div>
+                      <div className="flex-1 flex flex-col items-center pt-1">
+                        <span className="text-xs text-muted-foreground mb-1">{f.stops}</span>
+                        <div className="w-full flex items-center gap-1.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                          <span className="flex-1 h-px bg-border relative"><Icon name="Plane" size={14} className="text-primary absolute left-1/2 -translate-x-1/2 -top-2 bg-white" /></span>
+                          <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                        </div>
+                        <span className="text-xs text-muted-foreground mt-1">{f.dur}</span>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-2xl font-bold">{f.arr}</div>
+                        <div className="text-xs text-muted-foreground mt-0.5">{f.to}</div>
+                        <div className="text-xs text-muted-foreground">{f.toCity}</div>
+                        <div className="text-xs text-muted-foreground">{f.toAir}</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4 mt-4 text-xs text-muted-foreground">
+                      <span className="flex items-center gap-1.5"><Icon name="Briefcase" size={14} /> Ручная кладь 10 кг</span>
+                      <span className="flex items-center gap-1.5"><Icon name="Luggage" size={14} /> Багаж 1 место</span>
+                      {f.seats && <span className="text-destructive font-medium">{f.seats}</span>}
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <div className="text-2xl font-bold">{f.arr}</div>
-                    <div className="text-xs text-muted-foreground mt-0.5">{f.to}</div>
-                    <div className="text-xs text-muted-foreground">{f.toCity}</div>
-                    <div className="text-xs text-muted-foreground">{f.toAir}</div>
+
+                  <div className="lg:w-px lg:h-24 lg:bg-border" />
+
+                  <div className="flex lg:flex-col items-center lg:items-end justify-between gap-3 lg:min-w-[150px]">
+                    <div className="text-right">
+                      <div className="text-2xl font-extrabold">от {f.price} ₽</div>
+                      <div className="text-xs text-muted-foreground">за пассажира</div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => toggleFav(f.id)}
+                        className={`grid place-items-center w-11 h-11 rounded-xl border transition-colors ${isFav ? 'bg-primary/10 border-primary/30' : 'border-border hover:bg-secondary'}`}>
+                        <Icon name="Heart" size={18} className={isFav ? 'text-primary fill-primary' : 'text-muted-foreground'} />
+                      </button>
+                      <button
+                        onClick={() => setBookingFlight(f)}
+                        className="bg-primary text-primary-foreground font-semibold text-sm px-6 py-3 rounded-xl hover:bg-[hsl(var(--flyway-dark))] transition-colors">
+                        Выбрать
+                      </button>
+                    </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-4 mt-4 text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1.5"><Icon name="Briefcase" size={14} /> Ручная кладь 10 кг</span>
-                  <span className="flex items-center gap-1.5"><Icon name="Luggage" size={14} /> Багаж 1 место</span>
-                  {f.seats && <span className="text-destructive font-medium">{f.seats}</span>}
-                </div>
-              </div>
-
-              <div className="lg:w-px lg:h-24 lg:bg-border" />
-
-              <div className="flex lg:flex-col items-center lg:items-end justify-between gap-3 lg:min-w-[150px]">
-                <div className="text-right">
-                  <div className="text-2xl font-extrabold">от {f.price} ₽</div>
-                  <div className="text-xs text-muted-foreground">за пассажира</div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button className="grid place-items-center w-11 h-11 rounded-xl border border-border hover:bg-secondary transition-colors"><Icon name="Heart" size={18} className="text-muted-foreground" /></button>
-                  <button className="bg-primary text-primary-foreground font-semibold text-sm px-6 py-3 rounded-xl hover:bg-[hsl(var(--flyway-dark))] transition-colors">Выбрать</button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </section>
 
       {/* Reviews */}
@@ -286,6 +474,9 @@ export default function Index() {
           </div>
         </div>
       </footer>
+
+      {/* Booking modal */}
+      {bookingFlight && <BookingModal flight={bookingFlight} onClose={() => setBookingFlight(null)} />}
     </div>
   );
 }
