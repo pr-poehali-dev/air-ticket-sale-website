@@ -3,6 +3,13 @@ import Icon from '@/components/ui/icon';
 
 const HERO_IMG = 'https://cdn.poehali.dev/projects/e11bc11c-60be-4d54-be6b-296e1a780d70/files/f5dcaa96-cd7a-4a40-bc87-28c74cfa181a.jpg';
 
+const AIRLINE_LOGOS: Record<string, string> = {
+  S7: 'https://cdn.poehali.dev/projects/e11bc11c-60be-4d54-be6b-296e1a780d70/files/657e2c5c-1c68-4e49-b7d6-dc0154da758e.jpg',
+  SU: 'https://cdn.poehali.dev/projects/e11bc11c-60be-4d54-be6b-296e1a780d70/files/0669e930-a156-40cd-a031-dfa23d820616.jpg',
+  DP: 'https://cdn.poehali.dev/projects/e11bc11c-60be-4d54-be6b-296e1a780d70/files/d4630b63-1d36-458f-9002-8bd353cc7c4a.jpg',
+  U6: 'https://cdn.poehali.dev/projects/e11bc11c-60be-4d54-be6b-296e1a780d70/files/05a261e1-f683-4c4d-9410-f97c78b86c09.jpg',
+};
+
 const navLinks = ['Авиабилеты', 'Отели', 'Мои заказы'];
 const tripTypes = ['Туда-обратно', 'В одну сторону', 'Сложный маршрут'];
 
@@ -355,7 +362,11 @@ export default function Index() {
                       {f.tag && (
                         <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${f.tag === 'Лучший выбор' ? 'bg-primary text-primary-foreground' : 'bg-secondary text-[hsl(var(--flyway-dark))]'}`}>{f.tag}</span>
                       )}
-                      <span className="grid place-items-center w-8 h-8 rounded-full bg-secondary text-xs font-bold text-[hsl(var(--flyway-dark))]">{f.code}</span>
+                      {AIRLINE_LOGOS[f.code] ? (
+                        <img src={AIRLINE_LOGOS[f.code]} alt={f.airline} className="w-8 h-8 rounded-full object-cover" />
+                      ) : (
+                        <span className="grid place-items-center w-8 h-8 rounded-full bg-secondary text-xs font-bold text-[hsl(var(--flyway-dark))]">{f.code}</span>
+                      )}
                       <span className="text-sm font-medium text-muted-foreground">{f.airline}</span>
                     </div>
                     <div className="flex items-center gap-4 md:gap-8">
