@@ -252,7 +252,7 @@ export default function Index() {
             <div className="absolute inset-0 bg-gradient-to-r from-[hsl(var(--flyway-dark))]/85 via-[hsl(var(--flyway-dark))]/55 to-transparent" />
             <div className="relative px-6 md:px-14 py-12 md:py-20">
               <div className="max-w-xl animate-fade-in">
-                <h1 className="text-4xl md:text-[52px] leading-[1.05] font-extrabold text-white">Путешествуйте<br />по миру легко</h1>
+                <h1 className="text-4xl md:text-[52px] leading-[1.05] font-extrabold text-white">Летайте<br />легко</h1>
                 <p className="mt-5 text-white/85 text-base md:text-lg max-w-md">Находите лучшие авиабилеты по выгодным ценам и отправляйтесь в новые места.</p>
               </div>
 
