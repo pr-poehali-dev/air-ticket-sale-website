@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import Icon from '@/components/ui/icon';
+import LOGO_IMG from '@/assets/aviasales-logo.png';
 
 const HERO_IMG = 'https://cdn.poehali.dev/projects/e11bc11c-60be-4d54-be6b-296e1a780d70/files/f5dcaa96-cd7a-4a40-bc87-28c74cfa181a.jpg';
 
@@ -69,8 +70,7 @@ type Flight = typeof ALL_FLIGHTS[0];
 function Logo({ light = false }: { light?: boolean }) {
   return (
     <div className="flex items-center gap-2">
-      <Icon name="Plane" size={26} className={light ? 'text-white' : 'text-primary'} />
-      <span className={`text-xl font-extrabold tracking-tight ${light ? 'text-white' : 'text-foreground'}`}>FlyWay</span>
+      <img src={LOGO_IMG} alt="Логотип" className={`h-7 w-auto ${light ? '' : 'brightness-0'}`} />
     </div>
   );
 }
